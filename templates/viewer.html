@@ -1,0 +1,601 @@
+{% extends "base.html" %} {% block title %}Data Viewer - Rainmeter Scraper{%
+endblock %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <h1 class="mb-4">
+      <i class="fas fa-table me-2"></i>
+      Scraped Skins Data
+    </h1>
+  </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="row mb-4">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <form id="searchForm" class="row g-3">
+          <div class="col-md-6">
+            <label for="searchQuery" class="form-label">Search</label>
+            <input
+              type="text"
+              class="form-control"
+              id="searchQuery"
+              placeholder="Search by name, description, developer, tags..."
+            />
+          </div>
+          <div class="col-md-4">
+            <label for="categoryFilter" class="form-label">Category</label>
+            <select class="form-select" id="categoryFilter">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button
+              type="submit"
+              class="btn btn-primary w-100"
+              title="Search skins"
+            >
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h6 class="card-title">Export Options</h6>
+        <div class="d-grid gap-2">
+          <button
+            class="btn btn-success"
+            onclick="exportData('csv')"
+            id="exportCsvBtn"
+          >
+            <i class="fas fa-file-csv me-2"></i>Download CSV
+          </button>
+          <button
+            class="btn btn-info"
+            onclick="exportData('json')"
+            id="exportJsonBtn"
+          >
+            <i class="fas fa-file-code me-2"></i>Download JSON
+          </button>
+        </div>
+        <div class="mt-3">
+          <a href="/scraper" class="btn btn-outline-primary w-100">
+            <i class="fas fa-spider me-2"></i>Back to Scraper
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="row mb-4" id="statsSummary">
+  <div class="col-md-3">
+    <div class="card bg-primary text-white">
+      <div class="card-body text-center">
+        <h4 id="totalCount">...</h4>
+        <p class="mb-0">Total Skins</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-success text-white">
+      <div class="card-body text-center">
+        <h4 id="developersCount">...</h4>
+        <p class="mb-0">Developers</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-info text-white">
+      <div class="card-body text-center">
+        <h4 id="downloadsCount">...</h4>
+        <p class="mb-0">With Downloads</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-warning text-dark">
+      <div class="card-body text-center">
+        <h4 id="thumbnailsCount">...</h4>
+        <p class="mb-0">With Thumbnails</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Toggle -->
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <strong id="resultsInfo">Loading...</strong>
+      </div>
+      <div class="btn-group" role="group">
+        <input
+          type="radio"
+          class="btn-check"
+          name="viewMode"
+          id="gridView"
+          checked
+        />
+        <label class="btn btn-outline-primary" for="gridView">
+          <i class="fas fa-th-large"></i> Grid
+        </label>
+
+        <input type="radio" class="btn-check" name="viewMode" id="listView" />
+        <label class="btn btn-outline-primary" for="listView">
+          <i class="fas fa-list"></i> List
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Display -->
+<div id="dataContainer">
+  <div class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-muted">Loading skin data...</p>
+  </div>
+</div>
+
+<!-- Pagination -->
+<div class="row mt-4">
+  <div class="col-12">
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center" id="pagination">
+        <!-- Pagination will be generated here -->
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let currentPage = 1;
+  let currentQuery = "";
+  let currentCategory = "";
+  let currentViewMode = "grid";
+  let totalPages = 1;
+  let isLoading = false;
+
+  $(document).ready(function () {
+    loadInitialData();
+
+    $("#searchForm").on("submit", function (e) {
+      e.preventDefault();
+      if (!isLoading) {
+        currentPage = 1;
+        performSearch();
+      }
+    });
+
+    $('input[name="viewMode"]').on("change", function () {
+      const newViewMode = $('input[name="viewMode"]:checked')
+        .attr("id")
+        .replace("View", "");
+      if (newViewMode !== currentViewMode) {
+        currentViewMode = newViewMode;
+        performSearch();
+      }
+    });
+
+    // Enable search on input change (debounced)
+    let searchTimeout;
+    $("#searchQuery").on("input", function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        if (!isLoading) {
+          currentPage = 1;
+          performSearch();
+        }
+      }, 500);
+    });
+
+    $("#categoryFilter").on("change", function () {
+      if (!isLoading) {
+        currentPage = 1;
+        performSearch();
+      }
+    });
+  });
+
+  function loadInitialData() {
+    isLoading = true;
+
+    $.get("/api/get_data")
+      .done(function (response) {
+        if (response && response.stats) {
+          updateStats(response.stats);
+
+          // Populate category filter
+          if (
+            response.stats.categories &&
+            response.stats.categories.length > 0
+          ) {
+            const categorySelect = $("#categoryFilter");
+            response.stats.categories.forEach((category) => {
+              if (category && category.trim()) {
+                categorySelect.append(
+                  `<option value="${category}">${category}</option>`
+                );
+              }
+            });
+          }
+
+          if (response.data && response.data.length > 0) {
+            displayData(response.data, response.total_count, 1, 50);
+            updateResultsInfo(response.total_count, 1, 50);
+            totalPages = Math.ceil(response.total_count / 20); // For pagination
+          } else {
+            showNoDataMessage();
+          }
+        } else {
+          showNoDataMessage();
+        }
+      })
+      .fail(function (xhr) {
+        console.error("Failed to load initial data:", xhr);
+        showErrorMessage(
+          "Failed to load data. Please check if the scraper has been run."
+        );
+      })
+      .always(() => {
+        isLoading = false;
+      });
+  }
+
+  function updateStats(stats) {
+    $("#totalCount").text(stats.total_skins || 0);
+    $("#developersCount").text(stats.unique_developers || 0);
+    $("#downloadsCount").text(stats.with_downloads || 0);
+    $("#thumbnailsCount").text(stats.with_thumbnails || 0);
+  }
+
+  function performSearch() {
+    if (isLoading) return;
+
+    isLoading = true;
+    currentQuery = $("#searchQuery").val().trim();
+    currentCategory = $("#categoryFilter").val();
+
+    // Show loading state
+    $("#dataContainer").html(`
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Searching...</p>
+      </div>
+    `);
+
+    const params = new URLSearchParams({
+      page: currentPage,
+      per_page: 20,
+    });
+
+    if (currentQuery) params.append("q", currentQuery);
+    if (currentCategory) params.append("category", currentCategory);
+
+    $.get(`/api/search?${params.toString()}`)
+      .done(function (response) {
+        if (response && response.data) {
+          displayData(
+            response.data,
+            response.total_count,
+            response.page,
+            response.per_page
+          );
+          updateResultsInfo(
+            response.total_count,
+            response.page,
+            response.per_page
+          );
+          totalPages = response.total_pages || 1;
+          generatePagination(response.page, response.total_pages);
+        } else {
+          showNoResultsMessage();
+        }
+      })
+      .fail(function (xhr) {
+        console.error("Search failed:", xhr);
+        showErrorMessage("Search failed. Please try again.");
+      })
+      .always(() => {
+        isLoading = false;
+      });
+  }
+
+  function displayData(data, totalCount, page, perPage) {
+    if (!data || data.length === 0) {
+      showNoResultsMessage();
+      return;
+    }
+
+    if (currentViewMode === "grid") {
+      displayGridView(data);
+    } else {
+      displayListView(data);
+    }
+  }
+
+  function displayGridView(data) {
+    let html = '<div class="row">';
+
+    data.forEach((skin) => {
+      const name = escapeHtml(skin.name || "Unnamed Skin");
+      const description = escapeHtml(
+        (skin.description || "No description available").substring(0, 100)
+      );
+      const thumbnail = skin.thumbnail_url;
+      const developer = escapeHtml(skin.developer || "");
+      const rating = skin.rating;
+      const downloadUrl = skin.download_url;
+
+      html += `
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+          <div class="card skin-card h-100">
+            ${
+              thumbnail
+                ? `<img src="${thumbnail}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${name}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y4ZjlmYSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE4IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';">`
+                : '<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;"><i class="fas fa-image fa-3x text-muted"></i></div>'
+            }
+            <div class="card-body d-flex flex-column">
+              <h6 class="card-title" title="${name}">${name}</h6>
+              <p class="card-text small text-muted flex-grow-1">${description}...</p>
+              <div class="mt-auto">
+                ${
+                  developer
+                    ? `<small class="text-muted d-block">By: ${developer}</small>`
+                    : ""
+                }
+                ${
+                  rating
+                    ? `<small class="text-warning d-block"><i class="fas fa-star"></i> ${rating}</small>`
+                    : ""
+                }
+                <div class="d-grid gap-1 mt-2">
+                  ${
+                    downloadUrl
+                      ? `<a href="${downloadUrl}" class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-download me-1"></i>Download
+                      </a>`
+                      : '<button class="btn btn-secondary btn-sm" disabled>No Download</button>'
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    $("#dataContainer").html(html);
+  }
+
+  function displayListView(data) {
+    let html = '<div class="list-group">';
+
+    data.forEach((skin) => {
+      const name = escapeHtml(skin.name || "Unnamed Skin");
+      const description = escapeHtml(
+        (skin.description || "No description available").substring(0, 150)
+      );
+      const thumbnail = skin.thumbnail_url;
+      const developer = escapeHtml(skin.developer || "Unknown developer");
+      const rating = skin.rating;
+      const downloadUrl = skin.download_url;
+      const tags = skin.tags;
+
+      html += `
+        <div class="list-group-item list-group-item-action">
+          <div class="row align-items-center">
+            <div class="col-md-2">
+              ${
+                thumbnail
+                  ? `<img src="${thumbnail}" class="img-fluid rounded" style="max-height: 80px; max-width: 100%; object-fit: cover;" alt="${name}" loading="lazy" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                   <div class="bg-light rounded d-none align-items-center justify-content-center" style="height: 80px; width: 100%;"><i class="fas fa-image fa-2x text-muted"></i></div>`
+                  : '<div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 80px;"><i class="fas fa-image fa-2x text-muted"></i></div>'
+              }
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-1">${name}</h6>
+              <p class="text-muted mb-1">${description}...</p>
+              <small class="text-muted">
+                By: ${developer}
+                ${rating ? ` | Rating: ${rating}` : ""}
+              </small>
+            </div>
+            <div class="col-md-2">
+              ${
+                tags && tags.split(",")[0]
+                  ? `<span class="badge bg-secondary">${escapeHtml(
+                      tags.split(",")[0].trim()
+                    )}</span>`
+                  : ""
+              }
+            </div>
+            <div class="col-md-2 text-end">
+              ${
+                downloadUrl
+                  ? `<a href="${downloadUrl}" class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-download"></i>
+                  </a>`
+                  : '<button class="btn btn-secondary btn-sm" disabled><i class="fas fa-ban"></i></button>'
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    $("#dataContainer").html(html);
+  }
+
+  function updateResultsInfo(totalCount, page, perPage) {
+    const start = (page - 1) * perPage + 1;
+    const end = Math.min(page * perPage, totalCount);
+
+    if (totalCount > 0) {
+      $("#resultsInfo").text(`Showing ${start}-${end} of ${totalCount} skins`);
+    } else {
+      $("#resultsInfo").text("No results found");
+    }
+  }
+
+  function generatePagination(currentPageNum, totalPagesNum) {
+    const paginationContainer = $("#pagination");
+
+    if (!totalPagesNum || totalPagesNum <= 1) {
+      paginationContainer.empty();
+      return;
+    }
+
+    let html = "";
+    const maxVisiblePages = 5;
+    const startPage = Math.max(
+      1,
+      currentPageNum - Math.floor(maxVisiblePages / 2)
+    );
+    const endPage = Math.min(totalPagesNum, startPage + maxVisiblePages - 1);
+
+    // Previous button
+    html += `
+      <li class="page-item ${currentPageNum === 1 ? "disabled" : ""}">
+        <a class="page-link" href="#" onclick="changePage(${
+          currentPageNum - 1
+        }); return false;">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+      </li>
+    `;
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      html += `
+        <li class="page-item ${i === currentPageNum ? "active" : ""}">
+          <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+        </li>
+      `;
+    }
+
+    // Next button
+    html += `
+      <li class="page-item ${
+        currentPageNum === totalPagesNum ? "disabled" : ""
+      }">
+        <a class="page-link" href="#" onclick="changePage(${
+          currentPageNum + 1
+        }); return false;">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </li>
+    `;
+
+    paginationContainer.html(html);
+  }
+
+  function changePage(page) {
+    if (page < 1 || page > totalPages || isLoading || page === currentPage)
+      return;
+
+    currentPage = page;
+    performSearch();
+
+    // Smooth scroll to top
+    $("html, body").animate({ scrollTop: 0 }, 400);
+  }
+
+  function exportData(format) {
+    const btn = format === "csv" ? $("#exportCsvBtn") : $("#exportJsonBtn");
+    const originalHtml = btn.html();
+
+    btn
+      .prop("disabled", true)
+      .html('<i class="fas fa-spinner fa-spin me-2"></i>Exporting...');
+
+    // Create a temporary link for download
+    const link = document.createElement("a");
+    link.href = `/api/export/${format}`;
+    link.download = `rainmeter_skins.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Reset button after a delay
+    setTimeout(() => {
+      btn.prop("disabled", false).html(originalHtml);
+    }, 2000);
+  }
+
+  function showNoDataMessage() {
+    $("#dataContainer").html(`
+      <div class="alert alert-warning text-center py-5">
+        <i class="fas fa-exclamation-triangle fa-3x mb-3 d-block"></i>
+        <h5>No Data Available</h5>
+        <p>No scraped data found. Please run the scraper first to collect data.</p>
+        <a href="/scraper" class="btn btn-primary">Go to Scraper</a>
+      </div>
+    `);
+    $("#resultsInfo").text("No data available");
+    $("#pagination").empty();
+  }
+
+  function showNoResultsMessage() {
+    $("#dataContainer").html(`
+      <div class="alert alert-info text-center py-5">
+        <i class="fas fa-search fa-3x mb-3 d-block"></i>
+        <h5>No Results Found</h5>
+        <p>No skins match your search criteria. Try adjusting your filters or search terms.</p>
+        <button class="btn btn-outline-primary" onclick="clearSearch()">Clear Search</button>
+      </div>
+    `);
+    $("#resultsInfo").text("No results found");
+    $("#pagination").empty();
+  }
+
+  function showErrorMessage(message) {
+    $("#dataContainer").html(`
+      <div class="alert alert-danger text-center py-5">
+        <i class="fas fa-exclamation-circle fa-3x mb-3 d-block"></i>
+        <h5>Error Loading Data</h5>
+        <p>${message}</p>
+        <button class="btn btn-outline-danger" onclick="loadInitialData()">Retry</button>
+      </div>
+    `);
+    $("#resultsInfo").text("Error loading data");
+    $("#pagination").empty();
+  }
+
+  function clearSearch() {
+    $("#searchQuery").val("");
+    $("#categoryFilter").val("");
+    currentQuery = "";
+    currentCategory = "";
+    currentPage = 1;
+    performSearch();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Make functions available globally
+  window.changePage = changePage;
+  window.exportData = exportData;
+  window.clearSearch = clearSearch;
+</script>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "base.html" %} {% block title %}Dashboard - Rainmeter Scraper{%
+endblock %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+      <h1 class="display-4">
+        <i class="fas fa-download me-3"></i>
+        Rainmeter Skins Scraper Pro
+      </h1>
+      <p class="lead">
+        Professional web scraping tool for extracting Rainmeter skins data from
+        VisualSkins.com
+      </p>
+      <hr class="my-4" />
+      <p>
+        Extract detailed information including names, descriptions, thumbnails,
+        download links, ratings, and more!
+      </p>
+      <a
+        class="btn btn-light btn-lg"
+        href="{{ url_for('scraper_page') }}"
+        role="button"
+      >
+        <i class="fas fa-play me-2"></i>Start Scraping
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row" id="statsCards">
+  <div class="col-md-3 mb-4">
+    <div class="card stats-card">
+      <div class="card-body text-center">
+        <h2 class="card-title" id="totalSkins">0</h2>
+        <p class="card-text">Total Skins</p>
+        <i class="fas fa-desktop fa-2x"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-4">
+    <div class="card bg-success text-white">
+      <div class="card-body text-center">
+        <h2 class="card-title" id="uniqueDevelopers">0</h2>
+        <p class="card-text">Developers</p>
+        <i class="fas fa-users fa-2x"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-4">
+    <div class="card bg-info text-white">
+      <div class="card-body text-center">
+        <h2 class="card-title" id="withDownloads">0</h2>
+        <p class="card-text">With Downloads</p>
+        <i class="fas fa-download fa-2x"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 mb-4">
+    <div class="card bg-warning text-dark">
+      <div class="card-body text-center">
+        <h2 class="card-title" id="withThumbnails">0</h2>
+        <p class="card-text">With Thumbnails</p>
+        <i class="fas fa-image fa-2x"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Overview -->
+<div class="row">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Features</h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled">
+          <li class="mb-2">
+            <i class="fas fa-check text-success me-2"></i>
+            Bulk scraping with rate limiting
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success me-2"></i>
+            Duplicate detection & removal
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success me-2"></i>
+            Data cleaning & validation
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success me-2"></i>
+            CSV & JSON export
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success me-2"></i>
+            Real-time progress tracking
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-check text-success me-2"></i>
+            Professional web interface
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-info-circle me-2"></i>Data Extracted
+        </h5>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled">
+          <li class="mb-2">
+            <i class="fas fa-tag text-primary me-2"></i>
+            Skin name & description
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-image text-primary me-2"></i>
+            Thumbnail images
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-download text-primary me-2"></i>
+            Download links
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-star text-primary me-2"></i>
+            Ratings & reviews
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-user text-primary me-2"></i>
+            Developer information
+          </li>
+          <li class="mb-2">
+            <i class="fas fa-tags text-primary me-2"></i>
+            Categories & tags
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <a
+              href="{{ url_for('scraper_page') }}"
+              class="btn btn-primary btn-lg w-100"
+            >
+              <i class="fas fa-play me-2"></i>Start Scraping
+            </a>
+          </div>
+          <div class="col-md-4 mb-3">
+            <a
+              href="{{ url_for('viewer_page') }}"
+              class="btn btn-success btn-lg w-100"
+            >
+              <i class="fas fa-table me-2"></i>View Data
+            </a>
+          </div>
+          <div class="col-md-4 mb-3">
+            <button
+              class="btn btn-info btn-lg w-100"
+              onclick="exportData('csv')"
+            >
+              <i class="fas fa-file-csv me-2"></i>Export CSV
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Scraping Status</h5>
+      </div>
+      <div class="card-body">
+        <div id="scrapingStatus">
+          <p class="text-muted">
+            No active scraping session. Click "Start Scraping" to begin.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  $(document).ready(function () {
+    loadStats();
+    checkScrapingStatus();
+
+    // Refresh status every 2 seconds
+    setInterval(checkScrapingStatus, 2000);
+  });
+
+  function loadStats() {
+    $.get("/api/get_data")
+      .done(function (response) {
+        $("#totalSkins").text(response.total_count || 0);
+        $("#uniqueDevelopers").text(response.stats.unique_developers || 0);
+        $("#withDownloads").text(response.stats.with_downloads || 0);
+        $("#withThumbnails").text(response.stats.with_thumbnails || 0);
+      })
+      .fail(function () {
+        console.log("No data available yet");
+      });
+  }
+
+  function checkScrapingStatus() {
+    $.get("/api/scraping_status").done(function (status) {
+      updateScrapingStatus(status);
+    });
+  }
+
+  function updateScrapingStatus(status) {
+    const statusDiv = $("#scrapingStatus");
+
+    if (status.is_running) {
+      statusDiv.html(`
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 class="status-running">
+                        <i class="fas fa-spinner fa-spin me-2"></i>
+                        Scraping in Progress
+                    </h6>
+                    <p class="mb-2"><strong>Current Task:</strong> ${
+                      status.current_task
+                    }</p>
+                    <p class="mb-2"><strong>Progress:</strong> ${
+                      status.scraped_count
+                    } / ${status.total_found} skins</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="progress-wrapper">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: ${status.progress}%" 
+                                 aria-valuenow="${status.progress}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="progress-text">${Math.round(
+                          status.progress
+                        )}%</div>
+                    </div>
+                </div>
+            </div>
+        `);
+    } else {
+      if (status.current_task === "Completed!") {
+        statusDiv.html(`
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Scraping completed successfully! ${status.scraped_count} skins scraped.
+                </div>
+            `);
+        loadStats(); // Refresh stats after completion
+      } else {
+        statusDiv.html(`
+                <p class="text-muted">No active scraping session. Click "Start Scraping" to begin.</p>
+            `);
+      }
+    }
+  }
+
+  function exportData(format) {
+    window.location.href = `/api/export/${format}`;
+  }
+</script>
+{% endblock %}

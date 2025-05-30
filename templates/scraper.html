@@ -1,0 +1,646 @@
+{% extends "base.html" %} {% block title %}Scraper Control - Rainmeter Scraper{%
+endblock %} {% block content %}
+<div class="row">
+  <div class="col-12">
+    <h1 class="mb-4">
+      <i class="fas fa-spider me-2"></i>
+      Scraper Control Panel
+    </h1>
+  </div>
+</div>
+
+<!-- Alert Container -->
+<div id="alertContainer"></div>
+
+<!-- Scraper Configuration -->
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-cogs me-2"></i>Scraping Configuration
+        </h5>
+      </div>
+      <div class="card-body">
+        <form id="scraperForm">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="maxPages" class="form-label"
+                  >Max Pages (Optional)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxPages"
+                  placeholder="Leave empty for all pages"
+                  min="1"
+                />
+                <small class="form-text text-muted"
+                  >Limit the number of skins to scrape</small
+                >
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="delay" class="form-label"
+                  >Delay Between Requests (seconds)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="delay"
+                  value="1"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                />
+                <small class="form-text text-muted"
+                  >Respectful delay to avoid rate limiting</small
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="maxWorkers" class="form-label"
+                  >Parallel Workers</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="maxWorkers"
+                  value="8"
+                  min="1"
+                  max="16"
+                />
+                <small class="form-text text-muted"
+                  >Number of parallel threads (higher = faster but more
+                  intensive)</small
+                >
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Scraping Mode</label>
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="scrapingMode"
+                    id="parallelMode"
+                    value="parallel"
+                    checked
+                  />
+                  <label class="form-check-label" for="parallelMode">
+                    <strong>Parallel Mode</strong>
+                    <span class="badge bg-success">Recommended</span>
+                  </label>
+                  <small class="form-text text-muted d-block"
+                    >Concurrent discovery and scraping for maximum speed</small
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <h6>Target Website Information</h6>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Target:</strong> https://visualskins.com/<br />
+              <strong>Data:</strong> Skin names, descriptions, thumbnails,
+              download links, ratings, developers, tags
+            </div>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg" id="startBtn">
+              <i class="fas fa-play me-2"></i>Start Parallel Scraping
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              id="stopBtn"
+              style="display: none"
+            >
+              <i class="fas fa-stop me-2"></i>Stop Scraping
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Quick Stats</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <span>Total Scraped:</span>
+            <strong id="totalScraped">0</strong>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <span>With Downloads:</span>
+            <strong id="withDownloads">0</strong>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <span>Unique Developers:</span>
+            <strong id="uniqueDevs">0</strong>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <span>Last Updated:</span>
+            <strong id="lastUpdated">Never</strong>
+          </div>
+        </div>
+        <div class="d-grid">
+          <a href="/viewer" class="btn btn-primary btn-sm">
+            <i class="fas fa-eye me-2"></i>View Data
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress Monitoring -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-tasks me-2"></i>Progress Monitor</h5>
+      </div>
+      <div class="card-body">
+        <!-- Progress Display -->
+        <div id="progressContainer" style="display: none">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6 class="card-title">
+                    <i class="fas fa-search me-2"></i>Discovery Progress
+                  </h6>
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <span id="discoveredCount">0 URLs found</span>
+                    <span id="discoveryRate" class="badge bg-info">0/min</span>
+                  </div>
+                  <div id="discoveryStatus" class="text-muted">
+                    Discovering...
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card mb-3">
+                <div class="card-body">
+                  <h6 class="card-title">
+                    <i class="fas fa-download me-2"></i>Scraping Progress
+                  </h6>
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <span id="scrapedCount">0 skins scraped</span>
+                    <span id="scrapingRate" class="badge bg-success"
+                      >0/min</span
+                    >
+                  </div>
+                  <div id="estimatedTime" class="text-muted">
+                    Calculating...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-body">
+              <div
+                class="d-flex justify-content-between align-items-center mb-2"
+              >
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-chart-line me-2"></i>Overall Progress
+                </h6>
+                <span id="progressPercent">0%</span>
+              </div>
+              <div class="progress mb-2" style="height: 25px">
+                <div
+                  id="progressBar"
+                  class="progress-bar progress-bar-striped progress-bar-animated"
+                  role="progressbar"
+                  style="width: 0%"
+                ></div>
+              </div>
+              <div class="d-flex justify-content-between">
+                <small class="text-muted" id="currentTask"
+                  >Ready to start</small
+                >
+                <small class="text-muted" id="elapsedTime">00:00</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="noProgress">
+          <p class="text-muted text-center py-4">
+            <i class="fas fa-play-circle fa-3x mb-3 d-block"></i>
+            No active scraping session. Configure settings above and click
+            "Start Scraping" to begin.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Results Preview -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-eye me-2"></i>Recent Results Preview
+        </h5>
+      </div>
+      <div class="card-body">
+        <div id="recentResults">
+          <p class="text-muted text-center py-3">
+            Start scraping to see recent results here...
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let statusInterval;
+  let isScrapingActive = false;
+
+  $(document).ready(function () {
+    loadQuickStats();
+    checkInitialStatus();
+
+    $("#scraperForm").on("submit", function (e) {
+      e.preventDefault();
+      startScraping();
+    });
+
+    $("#stopBtn").on("click", function () {
+      stopScraping();
+    });
+  });
+
+  function startScraping() {
+    const maxPages = $("#maxPages").val();
+    const delay = $("#delay").val();
+    const maxWorkers = $("#maxWorkers").val();
+    const scrapingMode = $("#parallelMode").is(":checked")
+      ? "parallel"
+      : "sequential";
+
+    // Validate inputs
+    if (maxPages && (parseInt(maxPages) < 1 || parseInt(maxPages) > 500)) {
+      showAlert("warning", "Please enter a valid number of skins (1-500)");
+      return;
+    }
+
+    if (parseFloat(delay) < 0.1 || parseFloat(delay) > 10) {
+      showAlert("warning", "Please enter a valid delay (0.1-10 seconds)");
+      return;
+    }
+
+    if (parseInt(maxWorkers) < 1 || parseInt(maxWorkers) > 16) {
+      showAlert("warning", "Please enter a valid number of workers (1-16)");
+      return;
+    }
+
+    const formData = {
+      max_pages: maxPages ? parseInt(maxPages) : null,
+      delay: parseFloat(delay),
+      max_workers: parseInt(maxWorkers),
+      scraping_mode: scrapingMode,
+    };
+
+    // Disable form
+    $("#startBtn")
+      .prop("disabled", true)
+      .html('<i class="fas fa-spinner fa-spin me-2"></i>Starting...');
+    $("#maxPages, #delay, #maxWorkers").prop("disabled", true);
+
+    $.ajax({
+      url: "/api/start_scraping",
+      method: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(formData),
+      success: function (response) {
+        showAlert("success", "Scraping started successfully!");
+        isScrapingActive = true;
+        $("#stopBtn").prop("disabled", false);
+        $("#progressContainer").show();
+        $("#noProgress").hide();
+
+        // Start monitoring progress - less frequent polling
+        statusInterval = setInterval(updateProgress, 3000); // Every 3 seconds instead of 1
+        updateProgress(); // Immediate first call
+      },
+      error: function (xhr) {
+        const error = xhr.responseJSON?.error || "Failed to start scraping";
+        showAlert("danger", error);
+        resetScraper();
+      },
+    });
+  }
+
+  function stopScraping() {
+    $("#stopBtn")
+      .prop("disabled", true)
+      .html('<i class="fas fa-spinner fa-spin me-2"></i>Stopping...');
+
+    $.ajax({
+      url: "/api/stop_scraping",
+      method: "POST",
+      success: function (response) {
+        showAlert("warning", "Scraping stopped by user");
+        isScrapingActive = false;
+        setTimeout(resetScraper, 2000); // Give time for cleanup
+      },
+      error: function (xhr) {
+        const error = xhr.responseJSON?.error || "Failed to stop scraping";
+        showAlert("danger", error);
+        $("#stopBtn")
+          .prop("disabled", false)
+          .html('<i class="fas fa-stop me-2"></i>Stop Scraping');
+      },
+    });
+  }
+
+  function updateProgress() {
+    if (!isScrapingActive) return;
+
+    $.get("/api/scraping_status")
+      .done(function (status) {
+        // Check if scraping finished
+        if (!status.is_running && statusInterval) {
+          clearInterval(statusInterval);
+          isScrapingActive = false;
+
+          if (status.current_task === "Completed!" || status.progress >= 100) {
+            showAlert(
+              "success",
+              `Scraping completed! ${status.scraped_count || 0} skins scraped.`
+            );
+            loadQuickStats();
+            loadRecentResults();
+          } else if (
+            status.current_task &&
+            status.current_task.includes("Error")
+          ) {
+            showAlert(
+              "danger",
+              "Scraping encountered an error: " + status.current_task
+            );
+          }
+
+          resetScraper();
+          return;
+        }
+
+        // Update progress bar
+        const progress = Math.min(100, Math.max(0, status.progress || 0));
+        $("#progressBar").css("width", progress + "%");
+        $("#progressPercent").text(Math.round(progress) + "%");
+
+        // Update labels
+        $("#currentTask").text(status.current_task || "Processing...");
+        $("#discoveredCount").text(
+          `${status.discovered_count || 0} URLs found`
+        );
+        $("#scrapedCount").text(`${status.scraped_count || 0} skins scraped`);
+
+        // Update discovery status
+        if (status.discovery_complete) {
+          $("#discoveryStatus").html(
+            '<i class="fas fa-check-circle text-success"></i> Discovery Complete'
+          );
+          $("#discoveryRate")
+            .removeClass("bg-info")
+            .addClass("bg-secondary")
+            .text("Complete");
+        } else {
+          $("#discoveryStatus").text("Discovering...");
+          $("#discoveryRate")
+            .removeClass("bg-secondary")
+            .addClass("bg-info")
+            .text(`${status.discovery_rate || 0}/min`);
+        }
+
+        // Update scraping metrics
+        $("#scrapingRate").text(`${status.scraping_rate || 0}/min`);
+        $("#estimatedTime").text(status.estimated_time || "Calculating...");
+
+        // Calculate and display elapsed time
+        if (status.start_time) {
+          const startTime = new Date(status.start_time);
+          const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+          const minutes = Math.floor(elapsed / 60);
+          const seconds = elapsed % 60;
+          $("#elapsedTime").text(
+            `${minutes.toString().padStart(2, "0")}:${seconds
+              .toString()
+              .padStart(2, "0")}`
+          );
+        }
+
+        // Handle errors
+        if (status.errors && status.errors.length > 0) {
+          $("#errorContainer").show();
+          const errorList = $("#errorList");
+          errorList.empty();
+          // Show only last 3 errors
+          status.errors.slice(-3).forEach((error) => {
+            errorList.append(`<li>${error}</li>`);
+          });
+        } else {
+          $("#errorContainer").hide();
+        }
+
+        // Update progress bar color based on status
+        const progressBar = $("#progressBar");
+        progressBar.removeClass("bg-success bg-warning bg-danger");
+        if (progress >= 100) {
+          progressBar.addClass("bg-success");
+        } else if (status.errors && status.errors.length > 0) {
+          progressBar.addClass("bg-warning");
+        }
+      })
+      .fail(function (xhr) {
+        if (xhr.status !== 0) {
+          // Ignore aborted requests
+          console.warn("Failed to get status:", xhr.status);
+          // Don't show error for occasional failed status requests
+        }
+      });
+  }
+
+  function checkInitialStatus() {
+    $.get("/api/scraping_status")
+      .done(function (status) {
+        if (status.is_running) {
+          isScrapingActive = true;
+          $("#startBtn")
+            .prop("disabled", true)
+            .html('<i class="fas fa-play me-2"></i>Scraping...');
+          $("#stopBtn").prop("disabled", false);
+          $("#maxPages, #delay, #maxWorkers").prop("disabled", true);
+          $("#progressContainer").show();
+          $("#noProgress").hide();
+          statusInterval = setInterval(updateProgress, 3000);
+        }
+      })
+      .fail(function () {
+        // Silently fail - no status available
+      });
+  }
+
+  function resetScraper() {
+    $("#startBtn")
+      .prop("disabled", false)
+      .html('<i class="fas fa-play me-2"></i>Start Parallel Scraping');
+    $("#stopBtn").prop("disabled", true).hide();
+    $("#maxPages, #delay, #maxWorkers").prop("disabled", false);
+
+    if (statusInterval) {
+      clearInterval(statusInterval);
+      statusInterval = null;
+    }
+
+    $("#progressContainer").hide();
+    $("#noProgress").show();
+
+    // Reset all progress indicators
+    $("#progressBar").css("width", "0%");
+    $("#progressPercent").text("0%");
+    $("#currentTask").text("Ready to start");
+    $("#discoveredCount").text("0 URLs found");
+    $("#scrapedCount").text("0 skins scraped");
+    $("#discoveryStatus").text("Discovering...");
+    $("#discoveryRate")
+      .removeClass("bg-secondary")
+      .addClass("bg-info")
+      .text("0/min");
+    $("#scrapingRate").text("0/min");
+    $("#estimatedTime").text("Calculating...");
+    $("#elapsedTime").text("00:00");
+  }
+
+  function loadQuickStats() {
+    $.get("/api/get_data")
+      .done(function (response) {
+        if (response && response.stats) {
+          $("#totalScraped").text(response.total_count || 0);
+          $("#withDownloads").text(response.stats.with_downloads || 0);
+          $("#uniqueDevs").text(response.stats.unique_developers || 0);
+
+          if (response.total_count > 0) {
+            $("#lastUpdated").text("Recently");
+          }
+        }
+      })
+      .fail(function () {
+        // Keep existing values on error
+      });
+  }
+
+  function loadRecentResults() {
+    $.get("/api/get_data")
+      .done(function (response) {
+        if (response && response.data && response.data.length > 0) {
+          const recentDiv = $("#recentResults");
+          let html = '<div class="row">';
+
+          // Show first 3 results
+          response.data.slice(0, 3).forEach((skin) => {
+            const name = skin.name || "Unnamed Skin";
+            const description = (
+              skin.description || "No description available"
+            ).substring(0, 80);
+            const thumbnail = skin.thumbnail_url;
+            const developer = skin.developer;
+            const downloadUrl = skin.download_url;
+
+            html += `
+              <div class="col-md-4 mb-3">
+                <div class="card skin-card">
+                  ${
+                    thumbnail
+                      ? `<img src="${thumbnail}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${name}" loading="lazy">`
+                      : '<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;"><i class="fas fa-image fa-3x text-muted"></i></div>'
+                  }
+                  <div class="card-body">
+                    <h6 class="card-title">${name}</h6>
+                    <p class="card-text small text-muted">${description}...</p>
+                    ${
+                      developer
+                        ? `<small class="text-muted">By: ${developer}</small>`
+                        : ""
+                    }
+                    ${
+                      downloadUrl
+                        ? `<div class="mt-2"><a href="${downloadUrl}" class="btn btn-success btn-sm" target="_blank"><i class="fas fa-download me-1"></i>Download</a></div>`
+                        : ""
+                    }
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          html += "</div>";
+          html += `<div class="text-center mt-3">
+                    <a href="/viewer" class="btn btn-primary">View All ${response.total_count} Skins</a>
+                  </div>`;
+
+          recentDiv.html(html);
+        }
+      })
+      .fail(function () {
+        // Keep existing content on error
+      });
+  }
+
+  function showAlert(type, message) {
+    const alertHtml = `
+      <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+
+    // Remove existing alerts
+    $("#alertContainer .alert").remove();
+
+    // Add new alert
+    $("#alertContainer").append(alertHtml);
+
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+      $("#alertContainer .alert").fadeOut(500, function () {
+        $(this).remove();
+      });
+    }, 5000);
+  }
+</script>
+{% endblock %}

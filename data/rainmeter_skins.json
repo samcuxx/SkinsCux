@@ -6594,5 +6594,22 @@
     "version": "",
     "scraped_at": "2025-05-30T08:12:49.681585",
     "content_hash": "89d64e2cc84d9167a57bd8178defed1c"
+  },
+  {
+    "url": "https://www.deviantart.com/metio7cb/art/SystemFetch-2-5-1000000000",
+    "name": "SystemFetch 2.5",
+    "description": "A Win 11 style Rainmeter skin suit for date, time and system monitoring",
+    "thumbnail_url": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/i/1d4e5eb2-20e7-475f-a9a5-016a8f7bd27b/dg1z5od-05f43e35-0898-4249-adac-f40b5b371857.png/v1/fill/w_1035,h_772,q_70,strp/systemfetch_2_5_by_meti0x7cb_dg1z5od-pre.jpg",
+    "download_url": "https://www.deviantart.com/metio7cb/art/SystemFetch-2-5-1000000000",
+    "tags": "system monitoring, clock, time and date, windows 11",
+    "rating": "5.0 by 1 votes",
+    "developer": "metio7cb",
+    "category": "Clock",
+    "downloads": "1000",
+    "file_size": "",
+    "last_updated": "",
+    "version": "2.5",
+    "scraped_at": "2025-01-27T12:00:00.000000",
+    "content_hash": "systemfetch_2_5_hash"
   }
 ]
